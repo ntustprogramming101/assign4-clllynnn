@@ -18,6 +18,9 @@ class BouncyPlatform extends Platform {
   }
 
   void playPlatformSound() {
-    bouncyPlatformSound.play(); // Play the bouncy platform sound
+    if (!playedSound) {
+      bouncyPlatformSound.play(); // Play the bouncy platform sound
+      playedSound = true;
+    }
   }
 }

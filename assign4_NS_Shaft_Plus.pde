@@ -26,6 +26,7 @@ PImage fragilePlatformBrokenImage; // Image for broken fragile platforms
 PImage spikyPlatformImage; // Image for spiky platforms
 PImage healPotionImage; // Image for healing potions
 PImage winImage; // The image displayed when the player wins
+PImage friedImage;
 float winImageY; // The vertical position of the win image
 float winImageHeight; // The height of the win image
 int survivalTime = 0; // Time the player has survived in seconds
@@ -37,6 +38,10 @@ SoundFile fragilePlatformSound; // Sound for fragile platform interaction
 SoundFile fragilePlatformBrokenSound; // Sound for broken fragile platform interaction
 SoundFile spikyPlatformSound; // Sound for spiky platform interaction
 SoundFile healSound; // Sound for healing
+SoundFile fryerSound;
+boolean fryerSoundPlayed = false;
+ArrayList<Bubble> bubbles = new ArrayList<Bubble>();
+float friedFloatOffset = 0;
 
 // Setup
 void setup() {
@@ -60,6 +65,7 @@ void loadAssets() {
   winImage.resize(width, 0); // Resize the win image to fit the screen
   winImageHeight = winImage.height; // Get the height of the win image
   winImageY = height; // set the win image off-screen
+  friedImage = loadImage("fried.png");
 
   // Initialize the playerSprites array with subarrays for different movement states
   playerSprites[0] = new PImage[1]; // idle state (1 frame)
@@ -80,6 +86,7 @@ void loadAssets() {
   fragilePlatformBrokenSound = new SoundFile(this, "fragile_broken.mp3");
   spikyPlatformSound = new SoundFile(this, "spiky.mp3");
   healSound = new SoundFile(this, "heal.mp3");
+  fryerSound = new SoundFile(this, "fryer.mp3");
 }
 
 void initializeGame() {
@@ -104,20 +111,20 @@ void initializePlatforms() {
 void draw() {
   scrollBackground(); // Scroll the background continuously
 
-  switch (gameState){
-    case GAME_RUN:
-      runGame();
-      break;
-    case GAME_WIN:
-      winGame();
-      break;
-    case GAME_OVER:
-      endGame();
-      break;
+  switch (gameState) {
+  case GAME_RUN:
+    runGame();
+    break;
+  case GAME_WIN:
+    winGame();
+    break;
+  case GAME_OVER:
+    endGame();
+    break;
   }
 }
 
-void runGame(){
+void runGame() {
   for (int i = 0; i < platforms.length; i++) {
     platforms[i].update(); // Update the platform's position
     // Handle recycling
@@ -149,20 +156,19 @@ void runGame(){
 Platform assignRandomPlatform(float x, float y) {
   int typeIndex = int(random(5)); // Randomly select a type (0 = normal, 1 = bouncy, 2 = spiky, 3 = fragile, 4 = healing)
   switch (typeIndex) {
-    case 0:
-      return new Platform(x, y); // Normal platform
-    case 1:
-      return new BouncyPlatform(x, y); // Bouncy platform
-    case 2:
-      return new SpikyPlatform(x, y); // Spiky platform
-    case 3:
-      return new FragilePlatform(x, y); // Fragile platform
-    case 4:
-      return new HealPlatform(x, y); // Healing platform
-    default :
-      return new Platform(x, y); // Fallback to normal platform
+  case 0:
+    return new Platform(x, y); // Normal platform
+  case 1:
+    return new BouncyPlatform(x, y); // Bouncy platform
+  case 2:
+    return new SpikyPlatform(x, y); // Spiky platform
+  case 3:
+    return new FragilePlatform(x, y); // Fragile platform
+  case 4:
+    return new HealPlatform(x, y); // Healing platform
+  default :
+    return new Platform(x, y); // Fallback to normal platform
   }
-  
 }
 
 // Background Scrolling
@@ -191,11 +197,41 @@ void displayHealthAndTimer() {
 void winGame() {
   displayWinImage(); // Show the win image
   player.forceDropToBottom(); // Allow the player to drop to the bottom of the screen
-  if (player.y < height - winImageHeight / 2) {
-    player.display(); // Display the player on the screen
+
+  float fryerTop = height - winImageHeight;
+  float fryerCenter = fryerTop + winImageHeight / 2;
+
+  if (!fryerSoundPlayed && player.y + player.h > fryerCenter) {
+    fryerSound.play();
+    fryerSoundPlayed = true;
   }
-  displayWinMessage(); // Show a congratulatory message 
+
+  if (player.y + player.h < fryerCenter) {
+    player.display();
+  } else {
+    if (frameCount % 5 == 0) {
+      bubbles.add(new Bubble(player.x + player.w / 2, fryerCenter));
+    }
+
+    for (int i = bubbles.size() - 1; i >= 0; i--) {
+      Bubble b = bubbles.get(i);
+      b.update();
+      b.display();
+      if (b.isDead()) bubbles.remove(i);
+    }
+
+    friedFloatOffset = sin(frameCount * 0.1) * 5;
+    pushMatrix();
+    translate(player.x + player.w / 2, fryerCenter + friedFloatOffset-20);
+    rotate(HALF_PI);
+    imageMode(CENTER);
+    image(friedImage, 0, 0);
+    imageMode(CORNER);
+    popMatrix();
+  }
+  displayWinMessage(); // Show a congratulatory message
 }
+
 // Handles the end of the game
 void endGame() {
   player.forceDropToBottom(); // Allow the player to drop to the bottom of the screen

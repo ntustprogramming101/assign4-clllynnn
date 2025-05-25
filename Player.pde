@@ -16,7 +16,7 @@ class Player {
 
   void update() {
     if (health <= 0) return; // Stop updating if the player is dead
-    
+
     if (moveDir != 0) {
       x += moveDir * xSpeed; // Move the player horizontally
       x = constrain(x, 0, width - w); // Keep the player within the screen bounds
@@ -63,6 +63,10 @@ class Player {
     // Axis-Aligned Bounding Box (AABB) collision detection
     return (ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by);
   }
+  boolean isOnPlatform(Platform platform) {
+    return AABB(x, y + h - feetOffset, w, feetOffset, platform.x, platform.y, platform.w, platform.h);
+  }
+
   // handle invincibility and damage states
   void handleInvincibleAndDamage() {
     if (invincible) {
@@ -115,5 +119,31 @@ class Player {
       y = height;
     }
   }
+}
 
+class Bubble {
+  float x, y, r, alpha, speedY;
+
+  Bubble(float x, float y) {
+    this.x = x + random(-10, 10);
+    this.y = y;
+    this.r = random(12, 20);
+    this.alpha = 255;
+    this.speedY = random(0.5, 1.5);
+  }
+
+  void update() {
+    y -= speedY;
+    alpha -= 2;
+  }
+
+  void display() {
+    noStroke();
+    fill(255, 255, 255, alpha);
+    ellipse(x, y, r, r);
+  }
+
+  boolean isDead() {
+    return alpha <= 0;
+  }
 }
